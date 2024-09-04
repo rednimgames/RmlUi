@@ -476,6 +476,9 @@ if( ENABLE_SVG_PLUGIN )
 endif()
 
 
+find_path(ROBIN_HOOD_INCLUDE_DIR robin_hood.h)
+include_directories(${ROBIN_HOOD_INCLUDE_DIR})
+
 if(NOT BUILD_FRAMEWORK)
 #===================================
 # Build libraries ==================

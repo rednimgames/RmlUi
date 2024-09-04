@@ -57,7 +57,7 @@
 	#else
 		#include "../Core/Containers/itlib/flat_map.hpp"
 		#include "../Core/Containers/itlib/flat_set.hpp"
-		#include "../Core/Containers/robin_hood.h"
+		#include <robin_hood.h>
 	#endif // RMLUI_NO_THIRDPARTY_CONTAINERS
 
 namespace Rml {
@@ -204,6 +204,6 @@ inline UniquePtr<T> MakeUnique(Args&&... args)
 	    #define RMLUI_MATRIX4_USER_EXTRA operator MyMatrix4() const { return MyMatrix4(data()); }
 	***/
 
-#endif     // RMLUI_USER_CONFIG_FILE
+#endif // RMLUI_USER_CONFIG_FILE
 
-#endif     // RMLUI_CONFIG_CONFIG_H
+#endif // RMLUI_CONFIG_CONFIG_H
