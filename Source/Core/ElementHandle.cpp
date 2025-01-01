@@ -43,6 +43,7 @@ ElementHandle::ElementHandle(const String& tag) : Element(tag), drag_start(0, 0)
 	move_target = nullptr;
 	size_target = nullptr;
 	initialised = false;
+	top_right = false;
 }
 
 ElementHandle::~ElementHandle() {}
@@ -57,6 +58,7 @@ void ElementHandle::OnAttributeChange(const ElementAttributes& changed_attribute
 		initialised = false;
 		move_target = nullptr;
 		size_target = nullptr;
+		top_right = false;
 	}
 }
 
@@ -76,6 +78,9 @@ void ElementHandle::ProcessDefaultAction(Event& event)
 			String size_target_name = GetAttribute<String>("size_target", "");
 			if (!size_target_name.empty())
 				size_target = GetElementById(size_target_name);
+
+			if (HasAttribute("top-right"))
+				top_right = true;
 
 			initialised = true;
 		}
@@ -132,12 +137,17 @@ void ElementHandle::ProcessDefaultAction(Event& event)
 
 				size_original_size = GetSize(box, computed);
 
+				if (top_right) {
+					move_original_position.x = size_target->GetOffsetLeft() - box.GetEdge(BoxArea::Margin, BoxEdge::Left);
+					move_original_position.y = size_target->GetOffsetTop() - box.GetEdge(BoxArea::Margin, BoxEdge::Top);
+				}
+
 				SetDefiniteMargins(size_target, computed);
 			}
 		}
 		else if (event == EventId::Drag)
 		{
-			const Vector2f delta = event.GetUnprojectedMouseScreenPos() - drag_start;
+			Vector2f delta = event.GetUnprojectedMouseScreenPos() - drag_start;
 
 			if (move_target)
 			{
@@ -148,9 +158,18 @@ void ElementHandle::ProcessDefaultAction(Event& event)
 
 			if (size_target)
 			{
+				if (top_right) {
+					delta.y = -delta.y;
+				}
+
 				const Vector2f new_size = Math::Max((size_original_size + delta).Round(), Vector2f(0.f));
 				size_target->SetProperty(PropertyId::Width, Property(new_size.x, Unit::PX));
 				size_target->SetProperty(PropertyId::Height, Property(new_size.y, Unit::PX));
+
+				if (top_right) {
+					const Vector2f new_position = (move_original_position - delta).Round();
+					size_target->SetProperty(PropertyId::Top, Property(new_position.y, Unit::PX));
+				}
 			}
 
 			Dictionary parameters;

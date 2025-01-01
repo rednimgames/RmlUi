@@ -59,6 +59,7 @@ protected:
 
 	Element* move_target;
 	Element* size_target;
+	bool top_right;
 
 	bool initialised;
 };
