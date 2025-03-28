@@ -28,6 +28,7 @@
 
 #include "DataViewDefault.h"
 #include "../../Include/RmlUi/Core/Core.h"
+#include "../../Include/RmlUi/Core/DataModel.h"
 #include "../../Include/RmlUi/Core/DataVariable.h"
 #include "../../Include/RmlUi/Core/Element.h"
 #include "../../Include/RmlUi/Core/ElementText.h"
@@ -35,7 +36,7 @@
 #include "../../Include/RmlUi/Core/SystemInterface.h"
 #include "../../Include/RmlUi/Core/Variant.h"
 #include "DataExpression.h"
-#include "../../Include/RmlUi/Core/DataModel.h"
+#include "EventSpecification.h"
 #include "XMLParseTools.h"
 
 namespace Rml {
@@ -646,6 +647,89 @@ bool DataViewAlias::Initialize(DataModel& model, Element* element, const String&
 
 void DataViewAlias::Release()
 {
+	delete this;
+}
+
+DataViewElementEvent::DataViewElementEvent(Element* element) : DataView(element, 0), event_listener(nullptr) {}
+
+StringList DataViewElementEvent::GetVariableNameList() const
+{
+	return StringList{address.front().name};
+}
+
+bool DataViewElementEvent::Update(DataModel& model)
+{
+	Element* element = GetElement();
+	Rml::Dictionary parameters;
+
+	if (expression)
+	{
+		DataExpressionInterface expr_interface(&model, element);
+
+		Variant value;
+		if (expression->Run(expr_interface, value))
+		{
+			parameters["value"] = value;
+		}
+	}
+	else
+	{
+		DataVariable variable = model.GetVariable(address);
+		if (variable.Type() == DataVariableType::Scalar)
+		{
+			Rml::Variant value;
+			if (variable.Get(value))
+			{
+				parameters["value"] = value;
+			}
+		}
+	}
+
+	const EventSpecification& specification = EventSpecificationInterface::Get(Rml::EventId::Change);
+	EventPtr event = Factory::InstanceEvent(element, Rml::EventId::Change, specification.type, parameters, specification.interruptible);
+	if (!event)
+		return false;
+
+	event_listener->ProcessEvent(*event);
+	return true;
+}
+
+bool DataViewElementEvent::Initialize(DataModel& model, Element* element, const String& in_expression, const String& modifier)
+{
+	size_t position = in_expression.find_last_of(':');
+	if (position == std::string::npos)
+	{
+		Log::Message(Log::LT_WARNING, "Invalid syntax in data-change-event '%s'", in_expression.c_str());
+		return false;
+	}
+
+	String expression_string = in_expression.substr(0, position);
+	if (modifier == "address")
+	{
+		address = model.ResolveAddress(expression_string, element);
+		if (address.empty())
+			return false;
+	}
+	else
+	{
+		expression = MakeUnique<DataExpression>(expression_string);
+		DataExpressionInterface expr_interface(&model, element);
+		bool result = expression->Parse(expr_interface, false);
+		if (!result)
+			return false;
+	}
+
+	String event_string = in_expression.substr(position + 1);
+	event_listener = Factory::InstanceEventListener(event_string, GetElement());
+	if (!event_listener)
+		return false;
+	event_listener->OnAttach(GetElement());
+	return true;
+}
+
+void DataViewElementEvent::Release()
+{
+	event_listener->OnDetach(GetElement());
 	delete this;
 }
 

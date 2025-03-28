@@ -147,6 +147,7 @@ struct DefaultInstancers {
 	DataViewInstancerDefault<DataViewValue> data_view_value;
 	DataViewInstancerDefault<DataViewChecked> data_view_checked;
 	DataViewInstancerDefault<DataViewAlias> data_view_alias;
+	DataViewInstancerDefault<DataViewElementEvent> data_view_element_event;
 
 	DataViewInstancerDefault<DataViewFor> structural_data_view_for;
 
@@ -273,6 +274,7 @@ void Factory::Initialise()
 	RegisterDataViewInstancer(&default_instancers.data_view_value,          "value",   false);
 	RegisterDataViewInstancer(&default_instancers.data_view_checked,        "checked", false);
 	RegisterDataViewInstancer(&default_instancers.data_view_alias,          "alias",   false);
+	RegisterDataViewInstancer(&default_instancers.data_view_element_event,  "elementevent",   false);
 	RegisterDataViewInstancer(&default_instancers.structural_data_view_for, "for",     true );
 	// clang-format on
 
