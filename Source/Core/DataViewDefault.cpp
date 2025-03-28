@@ -56,11 +56,22 @@ bool DataViewCommon::Initialize(DataModel& model, Element* element, const String
 	if (modifier.empty())
 		modifier = in_modifier;
 
+	saved_expression_str = expression_str;
 	expression = MakeUnique<DataExpression>(expression_str);
 	DataExpressionInterface expr_interface(&model, element);
 
 	bool result = expression->Parse(expr_interface, false);
 	return result;
+}
+
+void DataViewCommon::UpdateAddresses(DataModel& model)
+{
+	if (saved_expression_str.empty())
+		return;
+	DataExpressionPtr new_expression = MakeUnique<DataExpression>(saved_expression_str);
+	DataExpressionInterface expr_interface(&model, GetElement());
+	if (new_expression->Parse(expr_interface, false))
+		expression = std::move(new_expression);
 }
 
 StringList DataViewCommon::GetVariableNameList() const
@@ -299,14 +310,29 @@ bool DataViewVisible::Update(DataModel& model)
 
 DataViewText::DataViewText(Element* element) : DataView(element, 0) {}
 
+void DataViewText::UpdateAddresses(DataModel& model)
+{
+	if (saved_expression_str.empty())
+		return;
+
+	text.clear();
+	Initialize(model, GetElement(), {}, {});
+}
+
 bool DataViewText::Initialize(DataModel& model, Element* element, const String& /*expression*/, const String& /*modifier*/)
 {
 	ElementText* element_text = rmlui_dynamic_cast<ElementText*>(element);
 	if (!element_text)
 		return false;
 
-	const String& in_text = element_text->GetText();
+	if (saved_expression_str.empty())
+	{
+		saved_expression_str = element_text->GetText();
+	}
+	const String& in_text = saved_expression_str;
 
+	text.clear();
+	data_entries.clear();
 	text.reserve(in_text.size());
 
 	DataExpressionInterface expression_interface(&model, element);
@@ -497,6 +523,7 @@ bool DataViewFor::Initialize(DataModel& model, Element* element, const String& i
 
 	const String& container_name = iterator_container_pair.back();
 
+	saved_container_name = container_name;
 	container_address = model.ResolveAddress(container_name, element);
 	if (container_address.empty())
 		return false;
@@ -515,6 +542,11 @@ bool DataViewFor::Initialize(DataModel& model, Element* element, const String& i
 	}
 
 	return true;
+}
+
+void DataViewFor::UpdateAddresses(DataModel& model)
+{
+	container_address = model.ResolveAddress(saved_container_name, GetElement());
 }
 
 bool DataViewFor::Update(DataModel& model)
@@ -588,8 +620,21 @@ bool DataViewAlias::Update(DataModel&)
 	return false;
 }
 
+void DataViewAlias::UpdateAddresses(DataModel& model)
+{
+	variables.clear();
+
+	Rml::Element* element = GetElement();
+	Rml::String expression = element->GetAttribute("data-alias-" + saved_modifier, Rml::String());
+	if (!expression.empty())
+		Initialize(model, GetElement(), expression, saved_modifier);
+}
+
 bool DataViewAlias::Initialize(DataModel& model, Element* element, const String& expression, const String& modifier)
 {
+	if (saved_modifier.empty())
+		saved_modifier = modifier;
+
 	auto address = model.ResolveAddress(expression, element);
 	if (address.empty())
 		return false;

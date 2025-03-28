@@ -45,6 +45,7 @@ public:
 	DataViewCommon(Element* element, String override_modifier = String(), int sort_offset = 0);
 
 	bool Initialize(DataModel& model, Element* element, const String& expression, const String& modifier) override;
+	void UpdateAddresses(DataModel& model) override;
 
 	StringList GetVariableNameList() const override;
 
@@ -56,6 +57,7 @@ protected:
 	void Release() override;
 
 private:
+	String saved_expression_str;
 	String modifier;
 	DataExpressionPtr expression;
 };
@@ -130,6 +132,7 @@ public:
 	DataViewText(Element* in_element);
 
 	bool Initialize(DataModel& model, Element* element, const String& expression, const String& modifier) override;
+	void UpdateAddresses(DataModel& model) override;
 
 	bool Update(DataModel& model) override;
 	StringList GetVariableNameList() const override;
@@ -146,6 +149,7 @@ private:
 		String value;
 	};
 
+	String saved_expression_str;
 	String text;
 	Vector<DataEntry> data_entries;
 };
@@ -155,6 +159,7 @@ public:
 	DataViewFor(Element* element);
 
 	bool Initialize(DataModel& model, Element* element, const String& expression, const String& inner_rml) override;
+	void UpdateAddresses(DataModel& model) override;
 
 	bool Update(DataModel& model) override;
 
@@ -164,6 +169,7 @@ protected:
 	void Release() override;
 
 private:
+	String saved_container_name;
 	DataAddress container_address;
 	String iterator_name;
 	String iterator_index_name;
@@ -178,12 +184,14 @@ public:
 	DataViewAlias(Element* element);
 	virtual StringList GetVariableNameList() const override;
 	bool Update(DataModel& model) override;
+	void UpdateAddresses(DataModel& model) override;
 	bool Initialize(DataModel& model, Element* element, const String& expression, const String& modifier) override;
 
 protected:
 	void Release() override;
 
 private:
+	String saved_modifier;
 	StringList variables;
 };
 

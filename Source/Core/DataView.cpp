@@ -87,10 +87,22 @@ void DataViews::OnElementRemove(Element* element)
 	}
 }
 
-bool DataViews::Update(DataModel& model, const DirtyVariables& dirty_variables)
+bool DataViews::Update(DataModel& model, const DirtyVariables& dirty_variables, bool dirty_addresses)
 {
 	bool result = false;
 	size_t num_dirty_variables_prev = 0;
+
+	if (dirty_addresses)
+	{
+		for (auto& view : views)
+		{
+			view->UpdateAddresses(model);
+		}
+
+		name_view_map.clear();
+		views_to_add.insert(views_to_add.end(), std::make_move_iterator(views.begin()), std::make_move_iterator(views.end()));
+		views.clear();
+	}
 
 	// View updates may result in newly added views, or even new dirty variables. Thus, we do the
 	// update recursively but with an upper limit. Without the loop, newly added views won't be

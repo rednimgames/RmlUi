@@ -29,6 +29,7 @@
 #include "../../Include/RmlUi/Core/Element.h"
 #include "../../Include/RmlUi/Core/Context.h"
 #include "../../Include/RmlUi/Core/Core.h"
+#include "../../Include/RmlUi/Core/DataModel.h"
 #include "../../Include/RmlUi/Core/Dictionary.h"
 #include "../../Include/RmlUi/Core/ElementDocument.h"
 #include "../../Include/RmlUi/Core/ElementInstancer.h"
@@ -44,7 +45,6 @@
 #include "../../Include/RmlUi/Core/TransformPrimitive.h"
 #include "Clock.h"
 #include "ComputeProperty.h"
-#include "../../Include/RmlUi/Core/DataModel.h"
 #include "ElementAnimation.h"
 #include "ElementBackgroundBorder.h"
 #include "ElementDefinition.h"
@@ -2090,6 +2090,20 @@ void Element::SetOwnerDocument(ElementDocument* document)
 		for (ElementPtr& child : children)
 			child->SetOwnerDocument(document);
 	}
+}
+
+void Element::ReapplyDataModel()
+{
+	if (!data_model)
+		return;
+
+	data_model->OnElementRemove(this);
+
+	if (data_model)
+		ElementUtilities::ApplyDataViewsControllers(this);
+
+	for (ElementPtr& child : children)
+		child->ReapplyDataModel();
 }
 
 void Element::SetDataModel(DataModel* new_data_model)

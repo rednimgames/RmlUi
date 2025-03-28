@@ -66,6 +66,7 @@ public:
 	DataVariable GetVariable(const DataAddress& address) const;
 	bool GetVariableInto(const DataAddress& address, Variant& out_value) const;
 
+	void DirtyAddresses() { dirty_addresses = true; }
 	void DirtyVariable(const String& variable_name);
 	bool IsVariableDirty(const String& variable_name) const;
 	void DirtyAllVariables();
@@ -88,6 +89,7 @@ private:
 
 	UnorderedMap<String, DataVariable> variables;
 	DirtyVariables dirty_variables;
+	bool dirty_addresses = false;
 
 	UnorderedMap<String, UniquePtr<FuncDefinition>> function_variable_definitions;
 	UnorderedMap<String, DataEventFunc> event_callbacks;

@@ -255,7 +255,7 @@ void DataModel::CopyAliases(Element* from_element, Element* to_element)
 	{
 		// Need to create a copy to prevent errors during concurrent modification for 3rd party containers
 		auto copy = existing_map->second;
-		for (auto const& it : copy)
+		for (const auto& it : copy)
 			aliases[to_element][it.first] = std::move(it.second);
 	}
 }
@@ -406,8 +406,8 @@ void DataModel::OnElementRemove(Element* element)
 
 bool DataModel::Update(bool clear_dirty_variables)
 {
-	const bool result = views->Update(*this, dirty_variables);
-
+	const bool result = views->Update(*this, dirty_variables, dirty_addresses);
+	dirty_addresses = false;
 	if (clear_dirty_variables)
 		dirty_variables.clear();
 

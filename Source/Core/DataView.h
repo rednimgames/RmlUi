@@ -79,6 +79,8 @@ public:
 	// Returns true if the update resulted in a document change.
 	virtual bool Update(DataModel& model) = 0;
 
+	virtual void UpdateAddresses(DataModel& model) = 0;
+
 	// Returns the list of data variable name(s) which can modify this view.
 	virtual StringList GetVariableNameList() const = 0;
 
@@ -112,7 +114,7 @@ public:
 
 	void OnElementRemove(Element* element);
 
-	bool Update(DataModel& model, const DirtyVariables& dirty_variables);
+	bool Update(DataModel& model, const DirtyVariables& dirty_variables, bool dirty_addresses);
 
 private:
 	using DataViewList = Vector<DataViewPtr>;

@@ -614,6 +614,8 @@ public:
 	/// Updates definition, computed values, and runs OnPropertyChange on this element.
 	void UpdateProperties(float dp_ratio, Vector2f vp_dimensions);
 
+	void ReapplyDataModel();
+
 protected:
 	void Update(float dp_ratio, Vector2f vp_dimensions);
 	void Render();
@@ -679,7 +681,6 @@ protected:
 
 private:
 	void SetParent(Element* parent);
-
 	void SetDataModel(DataModel* new_data_model);
 
 	void DirtyAbsoluteOffset();
