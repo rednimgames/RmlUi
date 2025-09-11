@@ -212,6 +212,11 @@ void Variant::Set(const int value)
 	SET_VARIANT(int);
 }
 
+void Variant::Set(const long value)
+{
+	Set(static_cast<int64_t>(value));
+}
+
 void Variant::Set(const int64_t value)
 {
 	type = INT64;
@@ -222,6 +227,11 @@ void Variant::Set(const unsigned int value)
 {
 	type = UINT;
 	SET_VARIANT(unsigned int);
+}
+
+void Variant::Set(const unsigned long value)
+{
+	Set(static_cast<uint64_t>(value));
 }
 
 void Variant::Set(const uint64_t value)
