@@ -135,9 +135,13 @@ private:
 	void Set(const double value);
 	void Set(const int value);
 	void Set(const long value);
+#ifdef __APPLE_
 	void Set(const int64_t value);
+#endif
 	void Set(const unsigned int value);
+#ifdef __APPLE__
 	void Set(const unsigned long value);
+#endif
 	void Set(const uint64_t value);
 	void Set(const char* value);
 	void Set(void* value);
