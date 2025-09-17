@@ -134,10 +134,10 @@ private:
 	void Set(const float value);
 	void Set(const double value);
 	void Set(const int value);
+#ifdef __APPLE__
 	void Set(const long value);
-#ifdef __APPLE_
-	void Set(const int64_t value);
 #endif
+	void Set(const int64_t value);
 	void Set(const unsigned int value);
 #ifdef __APPLE__
 	void Set(const unsigned long value);
