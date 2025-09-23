@@ -31,6 +31,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <time.h>
+#include <cmath>
 
 namespace Rml {
 
