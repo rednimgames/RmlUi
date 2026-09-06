@@ -1953,6 +1953,18 @@ void Element::DirtyLayout()
 		document->DirtyLayout();
 }
 
+void Element::NotifyTextureDimensionsChanged()
+{
+	DirtyLayout();
+	// The existing image-color invalidation path refreshes image/progress UVs
+	// and decorator data without discarding text geometry or changing styles.
+	PropertyIdSet changed_properties;
+	changed_properties.Insert(PropertyId::ImageColor);
+	OnPropertyChange(changed_properties);
+	for (int i = 0; i < GetNumChildren(true); ++i)
+		GetChild(i)->NotifyTextureDimensionsChanged();
+}
+
 bool Element::IsLayoutDirty()
 {
 	if (Element* document = GetOwnerDocument())

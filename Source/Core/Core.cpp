@@ -353,7 +353,7 @@ Context* GetContext(int index)
 
 int GetNumContexts()
 {
-	return (int)core_data->contexts.size();
+	return core_data ? (int)core_data->contexts.size() : 0;
 }
 
 bool LoadFontFace(const String& file_path, bool fallback_face, Style::FontWeight weight, int face_index)

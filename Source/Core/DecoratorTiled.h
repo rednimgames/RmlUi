@@ -113,6 +113,7 @@ public:
 
 		mutable TileData tile_data;
 		mutable bool tile_data_calculated = false;
+		mutable Vector2i tile_texture_dimensions = Vector2i(0);
 
 		TileOrientation orientation;
 

@@ -168,6 +168,22 @@ Vector2i FileTextureDatabase::GetDimensions(RenderInterface* render_interface, T
 	return EnsureLoaded(render_interface, index).dimensions;
 }
 
+bool FileTextureDatabase::UpdateDimensions(TextureHandle texture_handle, Vector2i dimensions)
+{
+	if (!texture_handle || dimensions.x <= 0 || dimensions.y <= 0)
+		return false;
+	bool changed = false;
+	for (auto& texture : texture_list)
+	{
+		if (texture.texture_handle == texture_handle && texture.dimensions != dimensions)
+		{
+			texture.dimensions = dimensions;
+			changed = true;
+		}
+	}
+	return changed;
+}
+
 void FileTextureDatabase::GetSourceList(StringList& source_list) const
 {
 	source_list.reserve(source_list.size() + texture_list.size());

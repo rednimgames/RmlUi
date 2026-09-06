@@ -73,6 +73,7 @@ public:
 
 	TextureHandle GetHandle(RenderInterface* render_interface, TextureFileIndex index);
 	Vector2i GetDimensions(RenderInterface* render_interface, TextureFileIndex index);
+	bool UpdateDimensions(TextureHandle texture, Vector2i dimensions);
 
 	void GetSourceList(StringList& source_list) const;
 
