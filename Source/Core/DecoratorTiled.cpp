@@ -58,12 +58,14 @@ DecoratorTiled::Tile::Tile() : display_scale(1), position(0, 0), size(0, 0)
 
 void DecoratorTiled::Tile::CalculateDimensions(Texture texture) const
 {
-	if (!tile_data_calculated)
+	const Vector2i current_dimensions = texture.GetDimensions();
+	if (!tile_data_calculated || tile_texture_dimensions != current_dimensions)
 	{
 		tile_data_calculated = true;
+		tile_texture_dimensions = current_dimensions;
 		tile_data = {};
 
-		const Vector2f texture_dimensions(texture.GetDimensions());
+		const Vector2f texture_dimensions(current_dimensions);
 		if (texture_dimensions.x == 0 || texture_dimensions.y == 0)
 		{
 			tile_data.size = Vector2f(0, 0);

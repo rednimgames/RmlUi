@@ -614,6 +614,10 @@ public:
 	/// Updates definition, computed values, and runs OnPropertyChange on this element.
 	void UpdateProperties(float dp_ratio, Vector2f vp_dimensions);
 
+	// Refresh intrinsic image sizing and texture-dependent geometry after async
+	// file dimensions change. Must be called outside context update/render.
+	void NotifyTextureDimensionsChanged();
+
 protected:
 	void Update(float dp_ratio, Vector2f vp_dimensions);
 	void Render();

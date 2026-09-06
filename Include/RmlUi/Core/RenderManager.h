@@ -102,6 +102,10 @@ public:
 	Geometry MakeGeometry(Mesh&& mesh);
 
 	Texture LoadTexture(const String& source, const String& document_path = String());
+	// Publish dimensions for an asynchronously loaded file texture. Call outside
+	// context update/render, then notify affected element trees if this returns true.
+	bool UpdateTextureDimensions(TextureHandle texture, Vector2i dimensions);
+	RenderInterface* GetRenderInterface() const { return render_interface; }
 	CallbackTexture MakeCallbackTexture(CallbackTextureFunction callback);
 
 	CompiledFilter CompileFilter(const String& name, const Dictionary& parameters);

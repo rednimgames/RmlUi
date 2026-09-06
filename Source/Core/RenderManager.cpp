@@ -112,6 +112,11 @@ CallbackTexture RenderManager::MakeCallbackTexture(CallbackTextureFunction callb
 	return CallbackTexture(this, texture_database->callback_database.CreateTexture(std::move(callback)));
 }
 
+bool RenderManager::UpdateTextureDimensions(TextureHandle texture, Vector2i dimensions)
+{
+	return texture_database->file_database.UpdateDimensions(texture, dimensions);
+}
+
 void RenderManager::DisableScissorRegion()
 {
 	SetScissorRegion(Rectanglei::MakeInvalid());
