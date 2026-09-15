@@ -31,7 +31,7 @@
 #include <RmlUi/Core/DataModelHandle.h>
 #include <RmlUi/Core/DataVariable.h>
 #include <RmlUi/Lua/Utilities.h>
-#include "../Core/DataModel.h"
+#include <RmlUi/Core/DataModel.h>
 
 #define RMLDATAMODEL "RMLDATAMODEL"
 
