@@ -41,6 +41,8 @@
 	<div class="box break-all">A very veeery veeeeeeeeeeeery long word.</div>
 	<p>word-break: break-word</p>
 	<div class="box break-word">A very veeery veeeeeeeeeeeery long word.</div>
+	<p>word-break: break-word, word in an inline element should wrap whole to the next line</p>
+	<div class="box break-word">Go to <span style="color: #e45">Kenji</span>.</div>
 	<hr/>
 	<h1>Zero-width box</h1>
 	<p>word-break: normal</p>

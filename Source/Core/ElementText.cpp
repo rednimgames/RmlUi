@@ -265,7 +265,9 @@ bool ElementText::GenerateLine(String& line, int& line_length, float& line_width
 
 			if (token_width > max_token_width)
 			{
-				if (word_break == WordBreak::BreakAll || (word_break == WordBreak::BreakWord && line.empty()))
+				// With break-word, only break the word when it cannot be moved to a new line, i.e. when it is the first
+				// content of the line box. Otherwise, a text element starting mid-line would break its first word.
+				if (word_break == WordBreak::BreakAll || (word_break == WordBreak::BreakWord && line.empty() && !allow_empty))
 				{
 					// Try to break up the word
 					max_token_width = int(maximum_line_width - line_width);
