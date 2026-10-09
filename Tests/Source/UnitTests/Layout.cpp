@@ -138,3 +138,65 @@ TEST_CASE("Layout.Position.Relative")
 
 	TestsShell::ShutdownShell();
 }
+
+static const String document_word_break_rml = R"(
+<rml>
+<head>
+	<link type="text/rcss" href="/assets/rml.rcss"/>
+	<style>
+		body {
+			font-family: LatoLatin;
+			font-size: 20px;
+			width: 1000px;
+		}
+		#box {
+			word-break: break-word;
+		}
+	</style>
+</head>
+
+<body>
+	<div id="box">word <span id="span">word</span></div>
+</body>
+</rml>
+)";
+
+TEST_CASE("Layout.WordBreak.InlineElement")
+{
+	Context* context = TestsShell::GetContext();
+	REQUIRE(context);
+
+	ElementDocument* document = context->LoadDocumentFromMemory(document_word_break_rml);
+	REQUIRE(document);
+	document->Show();
+
+	Element* box = document->GetElementById("box");
+	Element* span = document->GetElementById("span");
+	REQUIRE(box);
+	REQUIRE(span);
+
+	TestsShell::RenderLoop();
+
+	const float word_width = span->GetBox().GetSize().x;
+	const float first_line_top = span->GetAbsoluteTop();
+	REQUIRE(word_width > 0.f);
+	REQUIRE(span->GetNumBoxes() == 1);
+
+	// The word fits on a line of its own but not after the text before it. With break-word, it must wrap whole to the
+	// next line instead of being broken, even though it starts a new text element partway through the line.
+	box->SetProperty("width", CreateString("%fpx", 1.5f * word_width));
+	TestsShell::RenderLoop();
+
+	CHECK(span->GetNumBoxes() == 1);
+	CHECK(span->GetAbsoluteTop() > first_line_top);
+
+	// A word too wide to fit even on an empty line is still broken.
+	box->SetProperty("width", CreateString("%fpx", 0.5f * word_width));
+	TestsShell::RenderLoop();
+
+	CHECK(span->GetNumBoxes() > 1);
+
+	document->Close();
+
+	TestsShell::ShutdownShell();
+}
