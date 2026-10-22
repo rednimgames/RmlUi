@@ -607,6 +607,59 @@ TEST_CASE("data_binding.inside_string")
 
 	TestsShell::ShutdownShell();
 }
+
+TEST_CASE("data_binding.repeated_model_root")
+{
+	Context* context = TestsShell::GetContext();
+	REQUIRE(context);
+
+	Vector<String> members = {"First", "Second"};
+	int clicks = 0;
+	auto constructor = context->CreateDataModel("repeated-root");
+	REQUIRE(constructor);
+	REQUIRE(constructor.RegisterArray<Vector<String>>());
+	REQUIRE(constructor.Bind("members", &members));
+	REQUIRE(constructor.BindEventCallback("clicked", [&](DataModelHandle, Event&, const VariantList&) { ++clicks; }));
+	auto model = constructor.GetModelHandle();
+
+	// The inner root binds while parsing. Attaching the document then propagates
+	// the same model to it again; this must not assert or duplicate its bindings.
+	for (int load = 0; load < 2; ++load)
+	{
+		ElementDocument* document = context->LoadDocumentFromMemory(R"rml(
+			<rml><head></head><body data-model="repeated-root" style="font-family: LatoLatin;">
+				<div id="members" data-model="repeated-root">
+					<button data-for="member : members" data-attr-value="member" data-event-click="clicked()">{{member}}</button>
+				</div>
+			</body></rml>)rml");
+		REQUIRE(document);
+		document->Show();
+		context->Update();
+
+		ElementList buttons;
+		document->QuerySelectorAll(buttons, "#members > button:not([data-for])");
+		REQUIRE(buttons.size() == members.size());
+		for (size_t i = 0; i < buttons.size(); ++i)
+		{
+			CHECK(buttons[i]->GetInnerRML() == members[i]);
+			CHECK(buttons[i]->GetDataModel() == document->GetDataModel());
+		}
+		buttons[0]->Click();
+		CHECK(clicks == load + 1);
+
+		members[0] = "Updated";
+		model.DirtyVariable("members");
+		context->Update();
+		CHECK(buttons[0]->GetInnerRML() == "Updated");
+		CHECK(buttons[0]->GetAttribute<String>("value", "") == "Updated");
+
+		document->Close();
+		context->Update();
+	}
+
+	TestsShell::ShutdownShell();
+}
+
 TEST_CASE("data_binding.aliasing")
 {
 	Context* context = TestsShell::GetContext();
