@@ -168,6 +168,10 @@ void ElementText::OnRender()
 				break;
 			}
 		}
+
+		// Retained subtrees are drawn away from their layout position, so their text is never culled.
+		for (Element* ancestor = GetParentNode(); ancestor && !render; ancestor = ancestor->GetParentNode())
+			render = ancestor->IsRetained();
 	}
 
 	if (render)

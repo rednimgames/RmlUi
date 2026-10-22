@@ -550,6 +550,28 @@ public:
 	/// @return True if the element has at least one DOM child, false otherwise.
 	bool HasChildNodes() const;
 
+	/// Append a retained child. A retained child is a non-DOM child that inherits style, matches selectors and
+	/// propagates events through this element like any other child. The context's update and render passes skip it,
+	/// and layout changes inside it mark the retained child instead of the document. Its owner updates, formats and
+	/// renders it explicitly with UpdateRetained(), FormatRetained() and RenderRetained(). Remove it with RemoveChild().
+	/// @param[in] element The element to append.
+	/// @return A pointer to the appended element.
+	Element* AppendRetainedChild(ElementPtr element);
+	/// Returns true if this element was appended with AppendRetainedChild().
+	bool IsRetained() const;
+	/// For retained elements: returns true if the style or layout of this subtree must be updated, including
+	/// changes inherited from its ancestors, the dp ratio, the viewport and style sheets.
+	bool IsRetainedDirty() const;
+	/// For retained elements: updates the definitions and computed values of this subtree.
+	void UpdateRetained();
+	/// For retained elements: formats this subtree within the containing block if its layout is dirty.
+	/// The element is placed at its top-left margin edge inside its parent, which is also its offset parent.
+	/// Clipping regions inside the subtree stop at the retained element.
+	/// @return True if a layout was performed.
+	bool FormatRetained(Vector2f containing_block);
+	/// For retained elements: renders this subtree, if visible, with the render manager's current state.
+	void RenderRetained();
+
 	/// Get a child element by its ID.
 	/// @param[in] id The ID of the child element.
 	/// @return The child of this element with the given ID, or nullptr if no such child exists.
@@ -685,6 +707,7 @@ private:
 	void SetParent(Element* parent);
 
 	void SetDataModel(DataModel* new_data_model);
+	void SetRetainedRootRecursive(Element* root);
 
 	void DirtyAbsoluteOffset();
 	void DirtyAbsoluteOffsetRecursive();
@@ -749,6 +772,9 @@ private:
 	bool dirty_transform : 1;
 	bool dirty_perspective : 1;
 
+	bool retained : 1;       // Appended with AppendRetainedChild().
+	bool retained_dirty : 1; // Retained element: layout or unit-dependent values changed.
+
 	OwnedElementList children;
 	int num_non_dom_children;
 
@@ -766,6 +792,8 @@ private:
 
 	// Parent element.
 	Element* parent;
+	// This element if it is retained, otherwise the nearest retained ancestor, or nullptr.
+	Element* retained_root;
 	// Currently focused child object
 	Element* focus;
 	// The owning document
