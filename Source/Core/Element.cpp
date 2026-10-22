@@ -94,11 +94,13 @@ static float GetScrollOffsetDelta(ScrollAlignment alignment, float begin_offset,
 Element::Element(const String& tag) :
 	local_stacking_context(false), local_stacking_context_forced(false), stacking_context_dirty(false), computed_values_are_default_initialized(true),
 	visible(true), offset_fixed(false), absolute_offset_dirty(true), rounded_main_padding_size_dirty(true), dirty_definition(false),
-	dirty_child_definitions(false), dirty_animation(false), dirty_transition(false), dirty_transform(false), dirty_perspective(false), tag(tag),
+	dirty_child_definitions(false), dirty_animation(false), dirty_transition(false), dirty_transform(false), dirty_perspective(false), retained(false),
+	retained_dirty(false), tag(tag),
 	relative_offset_base(0, 0), relative_offset_position(0, 0), absolute_offset(0, 0), scroll_offset(0, 0)
 {
 	RMLUI_ASSERT(tag == StringUtilities::ToLower(tag));
 	parent = nullptr;
+	retained_root = nullptr;
 	focus = nullptr;
 	instancer = nullptr;
 	owner_document = nullptr;
@@ -167,7 +169,11 @@ void Element::Update(float dp_ratio, Vector2f vp_dimensions)
 	meta->effects.InstanceEffects();
 
 	for (size_t i = 0; i < children.size(); i++)
-		children[i]->Update(dp_ratio, vp_dimensions);
+	{
+		// Retained children are updated by their owner, see UpdateRetained().
+		if (!children[i]->retained)
+			children[i]->Update(dp_ratio, vp_dimensions);
+	}
 
 	if (!animations.empty() && IsVisible(true))
 	{
@@ -1449,6 +1455,7 @@ ElementPtr Element::RemoveChild(Element* child)
 			if (child_index >= children.size() - num_non_dom_children)
 				num_non_dom_children--;
 
+			const bool was_retained = child->retained;
 			ElementPtr detached_child = std::move(*itr);
 			children.erase(itr);
 
@@ -1475,11 +1482,21 @@ ElementPtr Element::RemoveChild(Element* child)
 				}
 			}
 
+			if (was_retained)
+			{
+				detached_child->retained = false;
+				detached_child->retained_dirty = false;
+			}
+
 			detached_child->SetParent(nullptr);
 
-			DirtyLayout();
-			DirtyStackingContext();
-			DirtyDefinition(DirtyNodes::Self);
+			// Retained children are not part of our layout, stacking context or structural selectors.
+			if (!was_retained)
+			{
+				DirtyLayout();
+				DirtyStackingContext();
+				DirtyDefinition(DirtyNodes::Self);
+			}
 
 			return detached_child;
 		}
@@ -1493,6 +1510,65 @@ ElementPtr Element::RemoveChild(Element* child)
 bool Element::HasChildNodes() const
 {
 	return (int)children.size() > num_non_dom_children;
+}
+
+Element* Element::AppendRetainedChild(ElementPtr child)
+{
+	RMLUI_ASSERT(child && !child->parent);
+	Element* child_ptr = child.get();
+	child_ptr->retained = true;
+	child_ptr->retained_dirty = true;
+	// Retained children render themselves, so they need their own stacking context.
+	child_ptr->ForceLocalStackingContext();
+
+	// Unlike AppendChild(), our own definition, layout and stacking context are unaffected: retained children are not
+	// part of the DOM, our layout or our stacking context.
+	children.push_back(std::move(child));
+	num_non_dom_children++;
+	child_ptr->SetParent(this);
+
+	Element* ancestor = child_ptr;
+	for (int i = 0; i <= ChildNotifyLevels && ancestor; i++, ancestor = ancestor->GetParentNode())
+		ancestor->OnChildAdd(child_ptr);
+
+	return child_ptr;
+}
+
+bool Element::IsRetained() const
+{
+	return retained;
+}
+
+bool Element::IsRetainedDirty() const
+{
+	return retained_dirty || dirty_definition || dirty_child_definitions || meta->style.AnyPropertiesDirty();
+}
+
+void Element::UpdateRetained()
+{
+	RMLUI_ASSERT(retained);
+	if (Context* context = GetContext())
+		Update(context->GetDensityIndependentPixelRatio(), Vector2f(context->GetDimensions()));
+}
+
+bool Element::FormatRetained(Vector2f containing_block)
+{
+	RMLUI_ASSERT(retained);
+	if (!retained_dirty)
+		return false;
+
+	retained_dirty = false;
+	ElementUtilities::FormatElement(this, containing_block);
+	const Box& box = GetBox();
+	SetOffset(Vector2f(box.GetEdge(BoxArea::Margin, BoxEdge::Left), box.GetEdge(BoxArea::Margin, BoxEdge::Top)), parent);
+	return true;
+}
+
+void Element::RenderRetained()
+{
+	RMLUI_ASSERT(retained);
+	if (IsVisible())
+		Render();
 }
 
 Element* Element::GetElementById(const String& id)
@@ -1949,6 +2025,13 @@ void Element::OnChildRemove(Element* /*child*/) {}
 
 void Element::DirtyLayout()
 {
+	// Layout inside a retained subtree is formatted by its owner, independently of the document.
+	if (retained_root)
+	{
+		retained_root->retained_dirty = true;
+		return;
+	}
+
 	if (Element* document = GetOwnerDocument())
 		document->DirtyLayout();
 }
@@ -1967,6 +2050,9 @@ void Element::NotifyTextureDimensionsChanged()
 
 bool Element::IsLayoutDirty()
 {
+	if (retained_root)
+		return retained_root->retained_dirty;
+
 	if (Element* document = GetOwnerDocument())
 		return document->IsLayoutDirty();
 	return false;
@@ -2104,6 +2190,16 @@ void Element::SetOwnerDocument(ElementDocument* document)
 	}
 }
 
+void Element::SetRetainedRootRecursive(Element* root)
+{
+	if (retained_root == root)
+		return;
+
+	retained_root = root;
+	for (ElementPtr& child : children)
+		child->SetRetainedRootRecursive(child->retained ? child.get() : root);
+}
+
 void Element::SetDataModel(DataModel* new_data_model)
 {
 	RMLUI_ASSERTMSG(!data_model || !new_data_model, "We must either attach a new data model, or detach the old one.");
@@ -2141,6 +2237,8 @@ void Element::SetParent(Element* _parent)
 	RMLUI_ASSERT(!parent || !_parent);
 
 	parent = _parent;
+
+	SetRetainedRootRecursive(retained ? this : (parent ? parent->retained_root : nullptr));
 
 	if (parent)
 	{
@@ -2340,6 +2438,9 @@ void Element::AddChildrenToStackingContext(Vector<StackingContextChild>& stackin
 	const int num_children = (int)children.size();
 	for (int i = 0; i < num_children; ++i)
 	{
+		// Retained children render themselves, see RenderRetained().
+		if (children[i]->retained)
+			continue;
 		const bool is_non_dom_element = (i >= num_children - num_non_dom_children);
 		children[i]->AddToStackingContext(stacking_children, is_flex_container, is_non_dom_element);
 	}
@@ -2980,6 +3081,8 @@ void Element::OnDpRatioChangeRecursive()
 {
 	meta->effects.DirtyEffects();
 	GetStyle()->DirtyPropertiesWithUnits(Unit::DP_SCALABLE_LENGTH);
+	if (retained)
+		retained_dirty = true;
 
 	OnDpRatioChange();
 

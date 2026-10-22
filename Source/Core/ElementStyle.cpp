@@ -459,6 +459,9 @@ void ElementStyle::DirtyPropertiesWithUnits(Units units)
 void ElementStyle::DirtyPropertiesWithUnitsRecursive(Units units)
 {
 	DirtyPropertiesWithUnits(units);
+	// Unit changes (vw, vh, rem) can change the layout of a retained subtree, which its owner formats.
+	if (element->retained)
+		element->retained_dirty = true;
 
 	// Now dirty all of our descendant's properties that use the unit(s).
 	int num_children = element->GetNumChildren(true);

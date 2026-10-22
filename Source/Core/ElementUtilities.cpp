@@ -156,6 +156,19 @@ bool ElementUtilities::GetClippingRegion(Element* element, Rectanglei& out_clip_
 
 	Rectanglef clip_region = Rectanglef::MakeInvalid();
 
+	// Retained subtrees are drawn away from their layout position, so they clip with masks, which move with them,
+	// instead of scissor regions, which are bound to the viewport.
+	int in_retained_subtree = -1;
+	auto IsInRetainedSubtree = [&]() {
+		if (in_retained_subtree < 0)
+		{
+			in_retained_subtree = 0;
+			for (Element* ancestor = element; ancestor && !in_retained_subtree; ancestor = ancestor->GetParentNode())
+				in_retained_subtree = ancestor->IsRetained();
+		}
+		return in_retained_subtree == 1;
+	};
+
 	while (clipping_element)
 	{
 		const bool force_clip_current_element = (force_clip_self && clipping_element == element);
@@ -183,7 +196,8 @@ bool ElementUtilities::GetClippingRegion(Element* element, Rectanglei& out_clip_
 
 				// If the element has border-radius we always use a clip mask, since we can't easily predict if content is located on the curved
 				// region to be clipped. If the element has a transform we only use a clip mask when the content clips.
-				if (has_border_radius || (transform && has_clipping_content))
+				const bool retained = has_clipping_content && IsInRetainedSubtree();
+				if (has_border_radius || (transform && has_clipping_content) || retained)
 				{
 					Geometry* clip_geometry = clipping_element->GetElementBackgroundBorder()->GetClipGeometry(clipping_element, clip_area);
 					const ClipMaskOperation clip_operation = (out_clip_mask_list->empty() ? ClipMaskOperation::Set : ClipMaskOperation::Intersect);
@@ -194,7 +208,7 @@ bool ElementUtilities::GetClippingRegion(Element* element, Rectanglei& out_clip_
 				// If we only have border-radius then we add this element to the scissor region as well as the clip mask. This may help with e.g.
 				// culling text render calls. However, when we have a transform, the element cannot be added to the scissor region since its geometry
 				// may be projected entirely elsewhere.
-				if (transform)
+				if (transform || retained)
 					disable_scissor_clipping = true;
 			}
 
@@ -218,6 +232,10 @@ bool ElementUtilities::GetClippingRegion(Element* element, Rectanglei& out_clip_
 
 		// If this region ignores all clipping regions, then we do too.
 		if (clip_none)
+			break;
+
+		// Retained subtrees are drawn independently of their ancestors' clipping.
+		if (clipping_element->IsRetained())
 			break;
 
 		// Climb the tree to this region's parent.
