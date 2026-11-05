@@ -453,7 +453,9 @@ String DataViewText::BuildText() const
 	return result;
 }
 
-DataViewFor::DataViewFor(Element* element) : DataView(element, 0) {}
+// Sorted ahead of the views on its iteration elements, which have the same depth: when the
+// container shrinks, those elements must be removed before their views read past its end.
+DataViewFor::DataViewFor(Element* element) : DataView(element, -1) {}
 
 bool DataViewFor::Initialize(DataModel& model, Element* element, const String& in_expression, const String& in_rml_content)
 {
